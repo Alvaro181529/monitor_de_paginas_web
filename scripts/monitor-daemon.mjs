@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Daemon de Monitoreo Continuo en Segundo Plano con Prisma
- * Base de datos completamente independiente (SQLite / PostgreSQL / MySQL)
+ * Daemon de Monitoreo Continuo en Segundo Plano con Prisma y MongoDB
+ * Incluye chequeos de salud cada 30s y limpieza automática periódica de logs antiguos.
  *
  * Uso:
  *   node scripts/monitor-daemon.mjs
@@ -32,6 +32,10 @@ if (publicKey && privateKey) {
   webpush.setVapidDetails(subject, publicKey, privateKey);
 }
 
+// Días de retención de logs antes de purga automática (por defecto 15 días)
+const LOG_RETENTION_DAYS = parseInt(process.env.LOG_RETENTION_DAYS || '15', 10);
+let lastCleanup = 0;
+
 async function notifySubscribers(title, body) {
   if (!publicKey || !privateKey) return;
   const subscriptions = await prisma.pushSubscription.findMany({});
@@ -50,16 +54,49 @@ async function notifySubscribers(title, body) {
   }
 }
 
+/**
+ * Limpieza automática de logs antiguos para evitar crecimiento indefinido de la base de datos
+ */
+async function cleanupOldLogs() {
+  const now = Date.now();
+  // Ejecutar limpieza cada 6 horas
+  if (now - lastCleanup < 6 * 60 * 60 * 1000) {
+    return;
+  }
+  lastCleanup = now;
+
+  try {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - LOG_RETENTION_DAYS);
+
+    const result = await prisma.checkLog.deleteMany({
+      where: {
+        createdAt: {
+          lt: cutoffDate,
+        },
+      },
+    });
+
+    if (result.count > 0) {
+      console.log(`[LIMPIEZA] Se purgaron ${result.count} logs antiguos (> ${LOG_RETENTION_DAYS} días) en MongoDB.`);
+    }
+  } catch (err) {
+    console.error('[LIMPIEZA] Error al depurar logs antiguos:', err.message);
+  }
+}
+
 async function runHealthChecks() {
-  const timestamp = new Date().toLocaleTimeString();
-  const services = await prisma.service.findMany({ where: { isActive: true } });
+  const services = await prisma.service.findMany({
+    where: { isActive: true },
+  });
 
   if (services.length === 0) {
-    console.log(`[${timestamp}] No hay servicios activos para monitorear.`);
+    console.log(`[${new Date().toLocaleTimeString()}] No hay servicios activos para monitorear.`);
+    await cleanupOldLogs();
     return;
   }
 
-  console.log(`[${timestamp}] [CHECK] Verificando ${services.length} servicios con Prisma...`);
+  console.log(`[${new Date().toLocaleTimeString()}] [CHECK] Verificando ${services.length} servicios con Prisma + MongoDB...`);
 
   for (const service of services) {
     const previousStatus = service.status;
@@ -70,25 +107,26 @@ async function runHealthChecks() {
     const timer = setTimeout(() => controller.abort(), timeout);
     const start = Date.now();
 
-    let status = 'down';
     let statusCode = null;
     let responseTime = 0;
+    let status = 'down';
     let errorMessage = null;
 
     try {
-      const res = await fetch(service.url, {
+      const response = await fetch(service.url, {
         method: 'GET',
         signal: controller.signal,
-        headers: { 'User-Agent': 'MonitorDeServicios-Daemon/1.0' },
+        headers: { 'User-Agent': 'MonitorDeServiciosBot/1.0 (+https://monitordeservicios.local)' },
       });
+
       responseTime = Date.now() - start;
-      statusCode = res.status;
+      statusCode = response.status;
 
       if (statusCode === expected || (expected === 200 && statusCode >= 200 && statusCode < 400)) {
         status = responseTime > 2000 ? 'degraded' : 'up';
       } else {
         status = 'down';
-        errorMessage = `HTTP ${statusCode} (esperado ${expected})`;
+        errorMessage = `HTTP ${statusCode} (esperado: ${expected})`;
       }
     } catch (err) {
       responseTime = Date.now() - start;
@@ -144,12 +182,15 @@ async function runHealthChecks() {
       }
     }
   }
+
+  // Comprobar limpieza automática de logs
+  await cleanupOldLogs();
 }
 
 async function main() {
   console.log('========================================================');
-  console.log('DEMONIO DE MONITOREO DE SERVICIOS WEB - PRISMA ORM');
-  console.log(`Base de datos: ${process.env.DATABASE_URL || 'file:./monitor.db'}`);
+  console.log('DEMONIO DE MONITOREO DE SERVICIOS WEB - PRISMA + MONGODB');
+  console.log(`Retención automática de logs: ${LOG_RETENTION_DAYS} días`);
   console.log('========================================================\n');
 
   // Ejecución inicial inmediata

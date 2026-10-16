@@ -7,20 +7,68 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const { searchParams } = new URL(request.url);
+
+    // Parámetros de filtrado
+    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '50', 10), 10), 500);
+    const status = searchParams.get('status'); // all | up | down | degraded
+    const startDate = searchParams.get('startDate'); // YYYY-MM-DD o ISO
+    const endDate = searchParams.get('endDate'); // YYYY-MM-DD o ISO
 
     const service = await prisma.service.findUnique({
       where: { id },
-      include: {
-        logs: {
-          orderBy: { createdAt: 'desc' },
-          take: 50,
-        },
-      },
     });
 
     if (!service) {
       return NextResponse.json({ success: false, error: 'Servicio no encontrado' }, { status: 404 });
     }
+
+    // Construir filtro para Prisma
+    const whereClause: {
+      serviceId: string;
+      status?: string;
+      createdAt?: {
+        gte?: Date;
+        lte?: Date;
+      };
+    } = {
+      serviceId: id,
+    };
+
+    if (status && status !== 'all') {
+      whereClause.status = status;
+    }
+
+    if (startDate || endDate) {
+      whereClause.createdAt = {};
+      if (startDate) {
+        const start = new Date(startDate);
+        if (!isNaN(start.getTime())) {
+          whereClause.createdAt.gte = start;
+        }
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        if (!isNaN(end.getTime())) {
+          // Si es solo fecha YYYY-MM-DD, llevar hasta final del día 23:59:59.999
+          if (endDate.length === 10) {
+            end.setHours(23, 59, 59, 999);
+          }
+          whereClause.createdAt.lte = end;
+        }
+      }
+    }
+
+    const [logs, totalCount] = await Promise.all([
+      prisma.checkLog.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+      }),
+      prisma.checkLog.count({
+        where: whereClause,
+      }),
+    ]);
 
     return NextResponse.json({
       success: true,
@@ -28,7 +76,8 @@ export async function GET(
         ...service,
         _id: service.id,
       },
-      logs: service.logs.map((l) => ({
+      totalLogs: totalCount,
+      logs: logs.map((l) => ({
         _id: l.id,
         status: l.status,
         statusCode: l.statusCode,

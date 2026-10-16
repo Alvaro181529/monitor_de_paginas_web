@@ -58,12 +58,12 @@ export function ServiceDialog({
     e.preventDefault();
 
     if (!name.trim()) {
-      toast.error('El nombre del servicio es requerido');
+      toast.error('El nombre del servicio es obligatorio');
       return;
     }
 
     if (!url.trim()) {
-      toast.error('La URL es requerida');
+      toast.error('La URL es obligatoria');
       return;
     }
 
@@ -109,33 +109,33 @@ export function ServiceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-md p-4 sm:p-6 max-h-[92vh] overflow-y-auto">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">
-              {serviceToEdit ? 'Editar Servicio' : 'Agregar Nuevo Servicio'}
+      <DialogContent className="w-[calc(100%-0.75rem)] sm:w-[94vw] max-w-md p-3 sm:p-5 max-h-[94vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+          <DialogHeader className="pr-7">
+            <DialogTitle className="text-sm sm:text-base font-bold">
+              {serviceToEdit ? 'Editar Servicio' : 'Nuevo Servicio'}
             </DialogTitle>
-            <DialogDescription className="text-xs">
-              Introduce la URL del sitio web o API para verificar su conectividad.
+            <DialogDescription className="text-[11px] sm:text-xs">
+              Introduce los parámetros para monitorizar la página web o API.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3 py-1">
+          <div className="space-y-2.5 py-0.5">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-foreground">
+              <label className="text-[11px] sm:text-xs font-semibold text-foreground">
                 Nombre descriptivo <span className="text-red-500">*</span>
               </label>
               <Input
                 placeholder="Ej. Portal Web Principal"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="h-8 sm:h-9 text-xs"
+                className="h-7 sm:h-8 text-xs"
                 required
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-foreground">
+              <label className="text-[11px] sm:text-xs font-semibold text-foreground">
                 URL del servicio <span className="text-red-500">*</span>
               </label>
               <Input
@@ -143,18 +143,18 @@ export function ServiceDialog({
                 placeholder="https://ejemplo.com"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                className="h-8 sm:h-9 text-xs"
+                className="h-7 sm:h-8 text-xs"
                 required
               />
-              <p className="text-[10px] text-muted-foreground">
-                Si no se especifica protocolo, se usará https:// automáticamente.
+              <p className="text-[9px] sm:text-[10px] text-muted-foreground">
+                Si no especificas protocolo, se agregará https:// automáticamente.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">
-                  Intervalo (segundos)
+                <label className="text-[10px] sm:text-xs font-semibold text-foreground truncate block">
+                  Intervalo (seg)
                 </label>
                 <Input
                   type="number"
@@ -162,13 +162,13 @@ export function ServiceDialog({
                   max="3600"
                   value={checkInterval}
                   onChange={(e) => setCheckInterval(Number(e.target.value))}
-                  className="h-8 sm:h-9 text-xs"
+                  className="h-7 sm:h-8 text-xs"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">
-                  Código HTTP Esperado
+                <label className="text-[10px] sm:text-xs font-semibold text-foreground truncate block">
+                  HTTP Esperado
                 </label>
                 <Input
                   type="number"
@@ -176,14 +176,14 @@ export function ServiceDialog({
                   max="599"
                   value={expectedStatus}
                   onChange={(e) => setExpectedStatus(Number(e.target.value))}
-                  className="h-8 sm:h-9 text-xs"
+                  className="h-7 sm:h-8 text-xs"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-center">
+            <div className="grid grid-cols-2 gap-2 items-center">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">
+                <label className="text-[10px] sm:text-xs font-semibold text-foreground truncate block">
                   Timeout (ms)
                 </label>
                 <Input
@@ -193,31 +193,31 @@ export function ServiceDialog({
                   step="500"
                   value={timeout}
                   onChange={(e) => setTimeout(Number(e.target.value))}
-                  className="h-8 sm:h-9 text-xs"
+                  className="h-7 sm:h-8 text-xs"
                 />
               </div>
 
-              <div className="flex items-center justify-between p-2 rounded-lg bg-muted/40 border">
-                <div>
-                  <div className="text-xs font-semibold">Monitoreo</div>
-                  <div className="text-[10px] text-muted-foreground">Activar chequeos</div>
+              <div className="flex items-center justify-between p-1.5 sm:p-2 rounded-lg bg-muted/40 border mt-3">
+                <div className="min-w-0 mr-1">
+                  <div className="text-[10px] sm:text-xs font-semibold truncate">Activo</div>
+                  <div className="text-[8px] sm:text-[9px] text-muted-foreground truncate">Monitorear</div>
                 </div>
                 <Switch checked={isActive} onCheckedChange={setIsActive} />
               </div>
             </div>
           </div>
 
-          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-1.5 pt-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={loading}
-              className="w-full sm:w-auto h-8 text-xs"
+              className="w-full sm:w-auto h-7 sm:h-8 text-xs"
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading} className="w-full sm:w-auto h-8 text-xs">
+            <Button type="submit" disabled={loading} className="w-full sm:w-auto h-7 sm:h-8 text-xs">
               {loading ? 'Guardando...' : serviceToEdit ? 'Actualizar' : 'Guardar y Verificar'}
             </Button>
           </DialogFooter>
