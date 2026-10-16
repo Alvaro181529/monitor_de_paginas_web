@@ -1,0 +1,79 @@
+// Prisma Schema para Monitor de Servicios Web
+// Base de datos MongoDB independiente y persistente
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String    @unique
+  password  String
+  role      String    @default("operador") // admin | operador | observador
+  isActive  Boolean   @default(true)
+  lastLogin DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Service {
+  id               String     @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  url              String
+  status           String     @default("unknown") // up | down | degraded | unknown
+  statusCode       Int?
+  responseTime     Int? // en milisegundos
+  checkInterval    Int        @default(60) // en segundos
+  expectedStatus   Int        @default(200)
+  timeout          Int        @default(10000) // en ms
+  lastCheck        DateTime?
+  lastStatusChange DateTime?
+  lastError        String?
+  uptimePercent    Float      @default(100.0)
+  totalChecks      Int        @default(0)
+  successfulChecks Int        @default(0)
+  isActive         Boolean    @default(true)
+  tags             String? // JSON o lista separada por comas
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  logs CheckLog[]
+
+  @@map("services")
+}
+
+model CheckLog {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  serviceId    String   @db.ObjectId
+  status       String // up | down | degraded
+  statusCode   Int?
+  responseTime Int? // en ms
+  errorMessage String?
+  createdAt    DateTime @default(now())
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId])
+  @@index([createdAt])
+  @@map("check_logs")
+}
+
+model PushSubscription {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  endpoint       String    @unique
+  expirationTime Float?
+  p256dh         String
+  auth           String
+  userAgent      String?
+  createdAt      DateTime  @default(now())
+
+  @@map("push_subscriptions")
+}

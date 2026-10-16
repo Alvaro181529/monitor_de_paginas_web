@@ -1,0 +1,47 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: monitor_mongodb
+    restart: unless-stopped
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      # Datos de MongoDB persistentes en volumen de Docker
+      - mongo_data:/data/db
+      - mongo_config:/data/configdb
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'try { rs.status().ok } catch(e) { rs.initiate({_id: \"rs0\", members: [{_id: 0, host: \"mongodb:27017\"}]}).ok }' | grep 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  monitor-servicios:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: monitor_servicios_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - DATABASE_URL=mongodb://mongodb:27017/monitor-db?replicaSet=rs0&directConnection=true
+      - MONGO_URI=mongodb://mongodb:27017/monitor-db
+      - JWT_SECRET=monitor_jwt_super_secret_key_medical_2026_secure
+      - NEXT_PUBLIC_VAPID_PUBLIC_KEY=BLFvmYiRg40Sor_WIj0TFZqAUGCJP8N9xDkk4FK7ZbS8XCoSwAgdnuFzXwlffDBzFZC6-nTp7QwhmeJLiLLfrsk
+      - VAPID_PRIVATE_KEY=5skVqmzYwbWxDmTIo5CO63PJJoZpUq4cFDgvWAAhURA
+      - VAPID_SUBJECT=mailto:admin@monitordeservicios.local
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+volumes:
+  mongo_data:
+    driver: local
+  mongo_config:
+    driver: local
