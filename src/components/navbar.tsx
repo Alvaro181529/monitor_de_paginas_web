@@ -1,6 +1,19 @@
 'use client';
 
-import { Activity, Bell, BellOff, BookOpen, Plus, RefreshCw, Zap, Users, LogOut, ShieldCheck } from 'lucide-react';
+import {
+  Activity,
+  Bell,
+  BellOff,
+  BookOpen,
+  Plus,
+  RefreshCw,
+  Zap,
+  Users,
+  LogOut,
+  FolderTree,
+  FileSpreadsheet,
+  Database,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PwaInstaller } from '@/components/pwa-installer';
 import { useNotifications } from '@/hooks/use-notifications';
@@ -11,6 +24,9 @@ interface NavbarProps {
   onNewService: () => void;
   onOpenGuide: () => void;
   onOpenUsers: () => void;
+  onOpenCategories: () => void;
+  onOpenReports: () => void;
+  onOpenMaintenance: () => void;
   onCheckAll: () => void;
   isCheckingAll: boolean;
   autoRefreshInterval: number; // en segundos (0 para apagado)
@@ -22,6 +38,9 @@ export function Navbar({
   onNewService,
   onOpenGuide,
   onOpenUsers,
+  onOpenCategories,
+  onOpenReports,
+  onOpenMaintenance,
   onCheckAll,
   isCheckingAll,
   autoRefreshInterval,
@@ -66,7 +85,7 @@ export function Navbar({
         {/* Acciones del Navbar */}
         <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
           {/* PWA Installer Component en Desktop */}
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             <PwaInstaller />
           </div>
 
@@ -117,15 +136,53 @@ export function Navbar({
             {isSubscribed ? (
               <>
                 <Bell className="w-3.5 h-3.5" />
-                <span className="hidden lg:inline text-xs">Alertas Activas</span>
+                <span className="hidden xl:inline text-xs">Alertas</span>
               </>
             ) : (
               <>
                 <BellOff className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="hidden lg:inline text-xs">Alertas</span>
+                <span className="hidden xl:inline text-xs">Alertas</span>
               </>
             )}
           </Button>
+
+          {/* Botón de Reportes y Exportación */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onOpenReports}
+            className="h-8 w-8 p-0 sm:w-auto sm:px-2 sm:h-8 text-xs flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+            title="Exportación y reportes ejecutivos SLA"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">Reportes</span>
+          </Button>
+
+          {/* Botón de Categorías */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onOpenCategories}
+            className="h-8 w-8 p-0 sm:w-auto sm:px-2 sm:h-8 text-xs flex items-center justify-center gap-1 text-muted-foreground border-border/80 hover:bg-accent hover:text-accent-foreground"
+            title="Gestionar categorías de servicios"
+          >
+            <FolderTree className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">Categorías</span>
+          </Button>
+
+          {/* Botón de Mantenimiento y Retención (para admin) */}
+          {currentUser?.role === 'admin' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenMaintenance}
+              className="h-8 w-8 p-0 sm:w-auto sm:px-2 sm:h-8 text-xs flex items-center justify-center gap-1 text-blue-600 dark:text-blue-400 border-blue-500/30 hover:bg-blue-500/10"
+              title="Políticas de retención y mantenimiento de logs"
+            >
+              <Database className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline">BD & Logs</span>
+            </Button>
+          )}
 
           {/* Botón de Gestión de Usuarios (visible para administradores) */}
           {currentUser?.role === 'admin' && (
@@ -137,7 +194,7 @@ export function Navbar({
               title="Administrar usuarios y permisos"
             >
               <Users className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Usuarios</span>
+              <span className="hidden lg:inline">Usuarios</span>
             </Button>
           )}
 

@@ -41,3 +41,18 @@ export async function verifySessionToken(token: string): Promise<TokenPayload | 
     return null;
   }
 }
+
+/**
+ * Obtiene la sesión actual desde las cookies en Server Components y Route Handlers
+ */
+export async function getSession(): Promise<TokenPayload | null> {
+  try {
+    const { cookies } = await import('next/headers');
+    const cookieStore = await cookies();
+    const token = cookieStore.get('auth_token')?.value;
+    if (!token) return null;
+    return await verifySessionToken(token);
+  } catch {
+    return null;
+  }
+}

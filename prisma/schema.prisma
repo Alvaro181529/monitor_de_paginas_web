@@ -24,10 +24,22 @@ model User {
   @@map("users")
 }
 
+model Category {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique
+  description String?
+  color       String?  @default("blue") // blue | emerald | amber | purple | rose | cyan | indigo | slate
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("categories")
+}
+
 model Service {
   id               String     @id @default(auto()) @map("_id") @db.ObjectId
   name             String
   url              String
+  category         String?    @default("General")
   status           String     @default("unknown") // up | down | degraded | unknown
   statusCode       Int?
   responseTime     Int? // en milisegundos
@@ -42,6 +54,17 @@ model Service {
   successfulChecks Int        @default(0)
   isActive         Boolean    @default(true)
   tags             String? // JSON o lista separada por comas
+
+  // Chequeos avanzados y métricas
+  checkType        String     @default("HTTP") // HTTP | TCP | SSL
+  port             Int?       // Puerto para TCP o SSL personalizado
+  httpMethod       String?    @default("GET") // GET | POST | HEAD
+  headers          String?    // JSON con cabeceras HTTP personalizadas
+  keyword          String?    // Palabra clave esperada en el cuerpo de respuesta
+  sslDaysRemaining Int?       // Días restantes de validez SSL
+  sslExpiryDate    DateTime?  // Fecha exacta de expiración SSL
+  sslIssuer        String?    // Emisor del certificado SSL
+
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
@@ -57,6 +80,8 @@ model CheckLog {
   statusCode   Int?
   responseTime Int? // en ms
   errorMessage String?
+  checkType    String?  @default("HTTP")
+  details      String?  // Detalles adicionales (SSL, keyword, etc.)
   createdAt    DateTime @default(now())
 
   service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
@@ -76,4 +101,13 @@ model PushSubscription {
   createdAt      DateTime  @default(now())
 
   @@map("push_subscriptions")
+}
+
+model Setting {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
 }

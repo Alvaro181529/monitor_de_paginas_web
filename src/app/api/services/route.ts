@@ -33,6 +33,7 @@ export async function GET() {
       _id: s.id,
       name: s.name,
       url: s.url,
+      category: s.category || 'General',
       status: s.status,
       statusCode: s.statusCode,
       responseTime: s.responseTime,
@@ -47,6 +48,14 @@ export async function GET() {
       successfulChecks: s.successfulChecks,
       isActive: s.isActive,
       tags: s.tags ? s.tags.split(',') : [],
+      checkType: s.checkType || 'HTTP',
+      port: s.port,
+      httpMethod: s.httpMethod || 'GET',
+      headers: s.headers,
+      keyword: s.keyword,
+      sslDaysRemaining: s.sslDaysRemaining,
+      sslExpiryDate: s.sslExpiryDate ? s.sslExpiryDate.toISOString() : null,
+      sslIssuer: s.sslIssuer,
       recentLogs: s.logs.reverse().map((l) => ({
         _id: l.id,
         status: l.status,
@@ -85,17 +94,32 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, url, checkInterval, expectedStatus, timeout, tags } = body;
+    const {
+      name,
+      url,
+      category,
+      checkInterval,
+      expectedStatus,
+      timeout,
+      tags,
+      checkType,
+      port,
+      httpMethod,
+      headers,
+      keyword,
+    } = body;
 
     if (!name || !url) {
       return NextResponse.json(
-        { success: false, error: 'Nombre y URL son requeridos' },
+        { success: false, error: 'Nombre y URL/Host son requeridos' },
         { status: 400 }
       );
     }
 
+    const type = checkType || 'HTTP';
     let formattedUrl = url.trim();
-    if (!/^https?:\/\//i.test(formattedUrl)) {
+
+    if (type === 'HTTP' && !/^https?:\/\//i.test(formattedUrl)) {
       formattedUrl = `https://${formattedUrl}`;
     }
 
@@ -103,12 +127,18 @@ export async function POST(request: Request) {
       data: {
         name: name.trim(),
         url: formattedUrl,
+        category: category && category.trim() ? category.trim() : 'General',
         checkInterval: Number(checkInterval) || 60,
         expectedStatus: Number(expectedStatus) || 200,
         timeout: Number(timeout) || 10000,
         tags: Array.isArray(tags) ? tags.join(',') : '',
         status: 'unknown',
         isActive: true,
+        checkType: type,
+        port: port ? Number(port) : null,
+        httpMethod: httpMethod || 'GET',
+        headers: headers ? (typeof headers === 'string' ? headers : JSON.stringify(headers)) : null,
+        keyword: keyword ? String(keyword).trim() : null,
       },
     });
 
